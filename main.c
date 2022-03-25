@@ -4,6 +4,26 @@
 #include <windows.h>
 #include <winnt.h>
 
+static char* windows_subsystems[17] = {
+    "Unknown",
+    "Native",
+    "Windows GUI",
+    "Windows Console",
+    "Invalid",
+    "OS/2 Console",
+    "Invalid",
+    "Posix Console",
+    "Native Win9x Driver",
+    "WinCE",
+    "EFI Application",
+    "EFI Boot Driver",
+    "EFI Runtime Driver",
+    "EFI ROM",
+    "XBox",
+    "Invalid",
+    "Windows boot application",
+};
+
 int main (int argc, char** argv) {
     
     /* Sanity check for the command line */
@@ -103,7 +123,27 @@ int main (int argc, char** argv) {
     printf("\n");
     
     /* 6. Parse .rsrc section and extract the content */
+    // PIMAGE_RESOURCE_DIRECTORY p_rd_root = (PIMAGE_RESOURCE_DIRECTORY) &p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
+    // printf("x = %d\n", p_rd_root->NumberOfIdEntries);
     /* 7. Other essential information */
+    printf("  Other information:\n");
+
+    WORD machine = p_nt_header->FileHeader.Machine;
+    printf("    Machine = 0x%X\n", machine);
+
+    WORD major_os_ver = p_nt_header->OptionalHeader.MajorOperatingSystemVersion;
+    WORD minor_os_ver = p_nt_header->OptionalHeader.MinorOperatingSystemVersion;
+    printf("    Major OS version = 0x%X\n", major_os_ver);
+    printf("    Minor OS version = 0x%X\n", minor_os_ver);
+
+    DWORD checksum = p_nt_header->OptionalHeader.CheckSum;
+    printf("    Checksum = 0x%lX\n", checksum);
+    
+    WORD sub_system = p_nt_header->OptionalHeader.Subsystem;
+    printf("    Subsystem = 0x%X (%s)\n", sub_system, windows_subsystems[sub_system]);
+
+
+
 
     fclose(exe_file);
 
