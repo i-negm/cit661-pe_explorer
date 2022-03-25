@@ -41,6 +41,8 @@ int main (int argc, char** argv) {
     IMAGE_DOS_HEADER* p_dos_header = (IMAGE_DOS_HEADER*) exe_file_data;
     /* 2. NT header at the e_lfanew offset from the start of the file */
     IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*) ((char*)p_dos_header + p_dos_header->e_lfanew);
+    /* 3. Section header */
+    IMAGE_SECTION_HEADER* p_section_header = (IMAGE_SECTION_HEADER*) ((char*)IMAGE_FIRST_SECTION(p_nt_header));
 
     /**
      * @brief Print parsed information
@@ -53,30 +55,53 @@ int main (int argc, char** argv) {
     /* 2. PE characteristics */
     WORD pe_characteristics = p_nt_header->FileHeader.Characteristics;
     printf("  PE Characteristics:\n");
-    printf("    [%s] is exectuable\n"                                      , (pe_characteristics & IMAGE_FILE_EXECUTABLE_IMAGE        )?"*": " ");
-    printf("    [%s] is DLL\n"                                             , (pe_characteristics & IMAGE_FILE_DLL                     )?"*": " ");
-    printf("    [%s] can handle large 2G > addresses\n"                    , (pe_characteristics & IMAGE_FILE_LARGE_ADDRESS_AWARE     )?"*": " ");
-    printf("    [%s] is system file\n"                                     , (pe_characteristics & IMAGE_FILE_SYSTEM                  )?"*": " ");
-    printf("    [%s] reallocation info stripped\n"                         , (pe_characteristics & IMAGE_FILE_RELOCS_STRIPPED         )?"*": " ");
-    printf("    [%s] line numbers stripped\n"                              , (pe_characteristics & IMAGE_FILE_LINE_NUMS_STRIPPED      )?"*": " ");
-    printf("    [%s] symbol table stripped\n"                              , (pe_characteristics & IMAGE_FILE_LOCAL_SYMS_STRIPPED     )?"*": " ");
-    printf("    [%s] debug info stripped\n"                                , (pe_characteristics & IMAGE_FILE_DEBUG_STRIPPED          )?"*": " ");
-    printf("    [%s] 32-bit word machine\n"                                , (pe_characteristics & IMAGE_FILE_32BIT_MACHINE           )?"*": " ");
-    printf("    [%s] if on removeable media, copy and run from swap\n"     , (pe_characteristics & IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP )?"*": " ");
-    printf("    [%s] if on network, copy and run from swap\n"              , (pe_characteristics & IMAGE_FILE_NET_RUN_FROM_SWAP       )?"*": " ");
-    printf("    [%s] should run on uni-processor machine\n"                , (pe_characteristics & IMAGE_FILE_UP_SYSTEM_ONLY          )?"*": " ");
+    printf("    [%s] is exectuable\n"                                      , (pe_characteristics & IMAGE_FILE_EXECUTABLE_IMAGE        )?"*": "-");
+    printf("    [%s] is DLL\n"                                             , (pe_characteristics & IMAGE_FILE_DLL                     )?"*": "-");
+    printf("    [%s] can handle large 2G > addresses\n"                    , (pe_characteristics & IMAGE_FILE_LARGE_ADDRESS_AWARE     )?"*": "-");
+    printf("    [%s] is system file\n"                                     , (pe_characteristics & IMAGE_FILE_SYSTEM                  )?"*": "-");
+    printf("    [%s] reallocation info stripped\n"                         , (pe_characteristics & IMAGE_FILE_RELOCS_STRIPPED         )?"*": "-");
+    printf("    [%s] line numbers stripped\n"                              , (pe_characteristics & IMAGE_FILE_LINE_NUMS_STRIPPED      )?"*": "-");
+    printf("    [%s] symbol table stripped\n"                              , (pe_characteristics & IMAGE_FILE_LOCAL_SYMS_STRIPPED     )?"*": "-");
+    printf("    [%s] debug info stripped\n"                                , (pe_characteristics & IMAGE_FILE_DEBUG_STRIPPED          )?"*": "-");
+    printf("    [%s] 32-bit word machine\n"                                , (pe_characteristics & IMAGE_FILE_32BIT_MACHINE           )?"*": "-");
+    printf("    [%s] if on removeable media, copy and run from swap\n"     , (pe_characteristics & IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP )?"*": "-");
+    printf("    [%s] if on network, copy and run from swap\n"              , (pe_characteristics & IMAGE_FILE_NET_RUN_FROM_SWAP       )?"*": "-");
+    printf("    [%s] should run on uni-processor machine\n"                , (pe_characteristics & IMAGE_FILE_UP_SYSTEM_ONLY          )?"*": "-");
     printf("\n");
+    
     /* 3. Address of entry point */
     DWORD image_base = p_nt_header->OptionalHeader.ImageBase;
     DWORD entry_point_addr = p_nt_header->OptionalHeader.AddressOfEntryPoint;
     printf("  Entry point Address = 0x%lX\n", entry_point_addr);
     printf("  Entry point Address (RVA) = 0x%lX\n", image_base + entry_point_addr);
     printf("\n");
+
     /* 4. Section info */
+    /* 5. Section locations */
     WORD num_sections = p_nt_header->FileHeader.NumberOfSections;
     printf("  Number of sections = %u\n", num_sections);
+   
+    printf("  Sections info:\n");
+    printf("      INDEX\t|\tNAME\t\t|\tR_ADDR\t\t|\tCHARACTERISTICS\n");
+    printf("           \t|\t    \t\t|\t      \t\t|\tR | W | X | SH | U_DATA | I_DATA | CODE\n");
 
-    /* 5. Section locations */
+    IMAGE_SECTION_HEADER* p_current_section = (IMAGE_SECTION_HEADER*) p_section_header;
+    for (int i = 1; i < num_sections + 1; i++, p_current_section++) {
+        DWORD sec_characteristics = p_current_section->Characteristics;
+        printf("      %d\t\t|\t", i);
+        printf("%s\t\t|\t", p_current_section->Name);
+        printf("0x%X\t\t|\t", p_current_section->PointerToRawData);
+        printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_READ)?"*": "-");
+        printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_WRITE)?"*": "-");
+        printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_EXECUTE)?"*": "-");
+        printf("%s  | ", (sec_characteristics & IMAGE_SCN_MEM_SHARED)?"*": "-");
+        printf("  %s    | ", (sec_characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)?"*": "-");
+        printf("  %s    | ", (sec_characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)?"*": "-");
+        printf(" %s", (sec_characteristics & IMAGE_SCN_CNT_CODE)?"*": "-");
+        printf("\n");
+    }
+    printf("\n");
+    
     /* 6. Parse .rsrc section and extract the content */
     /* 7. Other essential information */
 
