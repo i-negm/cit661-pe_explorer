@@ -90,7 +90,7 @@ int main (int argc, char** argv) {
         DWORD sec_characteristics = p_current_section->Characteristics;
         printf("      %d\t\t|\t", i);
         printf("%s\t\t|\t", p_current_section->Name);
-        printf("0x%X\t\t|\t", p_current_section->PointerToRawData);
+        printf("0x%lX\t\t|\t", p_current_section->PointerToRawData);
         printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_READ)?"*": "-");
         printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_WRITE)?"*": "-");
         printf("%s | ", (sec_characteristics & IMAGE_SCN_MEM_EXECUTE)?"*": "-");
