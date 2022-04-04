@@ -125,6 +125,80 @@ int main (int argc, char** argv) {
     /* 6. Parse .rsrc section and extract the content */
     // PIMAGE_RESOURCE_DIRECTORY p_rd_root = (PIMAGE_RESOURCE_DIRECTORY) &p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE];
     // printf("x = %d\n", p_rd_root->NumberOfIdEntries);
+    int num_data_directories = p_nt_header->OptionalHeader.NumberOfRvaAndSizes;
+    PIMAGE_DATA_DIRECTORY data_entry = p_nt_header->OptionalHeader.DataDirectory;
+
+    printf("\n");
+    printf("##### DATA DIRECTORIES #####\n");
+    printf("  Number of data directories = %d\n", num_data_directories);
+
+    printf("  Resource Directory is the 3rd directory.\n");
+    PIMAGE_DATA_DIRECTORY rsrc_dir_data = &data_entry[2];
+
+    printf("    RSRC Dir, address = 0x%X, size=0x%X.\n", rsrc_dir_data->VirtualAddress, rsrc_dir_data->Size);
+
+    PIMAGE_RESOURCE_DIRECTORY rsrc_dir = rsrc_dir_data->VirtualAddress;
+    printf("    RSRC number of entries = ID(%d), Named(%d).\n", rsrc_dir->NumberOfIdEntries, rsrc_dir->NumberOfNamedEntries);
+    // DATA_DIRECTORIES
+    printf("\tImport Directory Address: 0x%x; Size: 0x%x\n", p_nt_header->OptionalHeader.DataDirectory[1].VirtualAddress, p_nt_header->OptionalHeader.DataDirectory[1].Size);
+    printf("\tImport Directory Address: 0x%x; Size: 0x%x\n", p_nt_header->OptionalHeader.DataDirectory[2].VirtualAddress, p_nt_header->OptionalHeader.DataDirectory[1].Size);
+#if 0
+// SECTION_HEADERS
+printf("\n******* SECTION HEADERS *******\n");
+// get offset to first section headeer
+DWORD sectionLocation = (DWORD)p_nt_header + sizeof(DWORD) + (DWORD)(sizeof(IMAGE_FILE_HEADER)) + (DWORD)p_nt_header->FileHeader.SizeOfOptionalHeader;
+DWORD sectionSize = (DWORD)sizeof(IMAGE_SECTION_HEADER);
+
+// get offset to the import directory RVA
+DWORD importDirectoryRVA = p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+
+// print section data
+for (int i = 0; i < p_nt_header->FileHeader.NumberOfSections; i++) {
+sectionHeader = (PIMAGE_SECTION_HEADER)sectionLocation;
+printf("\t%s\n", sectionHeader->Name);
+printf("\t\t0x%x\t\tVirtual Size\n", sectionHeader->Misc.VirtualSize);
+printf("\t\t0x%x\t\tVirtual Address\n", sectionHeader->VirtualAddress);
+printf("\t\t0x%x\t\tSize Of Raw Data\n", sectionHeader->SizeOfRawData);
+printf("\t\t0x%x\t\tPointer To Raw Data\n", sectionHeader->PointerToRawData);
+printf("\t\t0x%x\t\tPointer To Relocations\n", sectionHeader->PointerToRelocations);
+printf("\t\t0x%x\t\tPointer To Line Numbers\n", sectionHeader->PointerToLinenumbers);
+printf("\t\t0x%x\t\tNumber Of Relocations\n", sectionHeader->NumberOfRelocations);
+printf("\t\t0x%x\t\tNumber Of Line Numbers\n", sectionHeader->NumberOfLinenumbers);
+printf("\t\t0x%x\tCharacteristics\n", sectionHeader->Characteristics);
+
+// save section that contains import directory table
+if (importDirectoryRVA >= sectionHeader->VirtualAddress && importDirectoryRVA < sectionHeader->VirtualAddress + sectionHeader->Misc.VirtualSize) {
+importSection = sectionHeader;
+}
+sectionLocation += sectionSize;
+}
+
+// get file offset to import table
+rawOffset = (DWORD)fileData + importSection->PointerToRawData;
+
+// get pointer to import descriptor's file offset. Note that the formula for calculating file offset is: imageBaseAddress + pointerToRawDataOfTheSectionContainingRVAofInterest + (RVAofInterest - SectionContainingRVAofInterest.VirtualAddress)
+importDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(rawOffset + (p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress - importSection->VirtualAddress));
+
+printf("\n******* DLL IMPORTS *******\n");	
+for (; importDescriptor->Name != 0; importDescriptor++)	{
+// imported dll modules
+printf("\t%s\n", rawOffset + (importDescriptor->Name - importSection->VirtualAddress));
+thunk = importDescriptor->OriginalFirstThunk == 0 ? importDescriptor->FirstThunk : importDescriptor->OriginalFirstThunk;
+thunkData = (PIMAGE_THUNK_DATA)(rawOffset + (thunk - importSection->VirtualAddress));
+
+// dll exported functions
+for (; thunkData->u1.AddressOfData != 0; thunkData++) {
+//a cheap and probably non-reliable way of checking if the function is imported via its ordinal number ¯\_(ツ)_/¯
+if (thunkData->u1.AddressOfData > 0x80000000) {
+//show lower bits of the value to get the ordinal ¯\_(ツ)_/¯
+printf("\t\tOrdinal: %x\n", (WORD)thunkData->u1.AddressOfData);
+} else {
+printf("\t\t%s\n", (rawOffset + (thunkData->u1.AddressOfData - importSection->VirtualAddress + 2)));
+}
+}
+}
+#endif
+
     /* 7. Other essential information */
     printf("  Other information:\n");
 
